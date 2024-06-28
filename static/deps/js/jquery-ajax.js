@@ -3,7 +3,7 @@ $(document).ready(function () {
     // берем в переменную элемент разметки с id jq-notification для оповещений от ajax
     var successMessage = $("#jq-notification");
 
-    // Ловим собыитие клика по кнопке добавить в корзину
+    // Ловим событие клика по кнопке добавить в корзину
     $(document).on("click", ".add-to-cart", function (e) {
         // Блокируем его базовое действие
         e.preventDefault();
