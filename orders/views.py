@@ -45,7 +45,7 @@ class CreateOrderView(LoginRequiredMixin, FormView):
 
                         if product.quantity < quantity:
                             raise ValidationError(f'Недостаточное количество товара {name} на складе\
-                                                  В наличии - {quantity}')
+                                                  В наличии - {product.quantity}')
 
                         OrderItem.objects.create(
                             order=order,

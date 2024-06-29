@@ -4,11 +4,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView
 from django.db.models import Prefetch
 from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.views.generic import CreateView, UpdateView, TemplateView
 
 from carts.models import Cart
+from common.mixins import CacheMixin
 from orders.models import Order, OrderItem
 from users.forms import UserLoginForm, UserRegistrationForm, ProfileForm
 
@@ -16,6 +17,7 @@ from users.forms import UserLoginForm, UserRegistrationForm, ProfileForm
 class UserLoginView(LoginView):
     template_name = 'users/login.html'
     form_class = UserLoginForm
+
     # success_url = reverse_lazy('main:index')
 
     def get_success_url(self):
@@ -71,7 +73,7 @@ class UserRegistrationView(CreateView):
         return context
 
 
-class UserProfileView(LoginRequiredMixin, UpdateView):
+class UserProfileView(LoginRequiredMixin, CacheMixin, UpdateView):
     template_name = 'users/profile.html'
     form_class = ProfileForm
     success_url = reverse_lazy('users:profile')
@@ -90,8 +92,15 @@ class UserProfileView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'HOME - Личный кабинет'
-        context['orders'] = Order.objects.filter(user=self.request.user).prefetch_related(
-            Prefetch('orderitem_set', queryset=OrderItem.objects.select_related("product"))).order_by("-id")
+
+        orders = Order.objects.filter(user=self.request.user).prefetch_related(
+            Prefetch(
+                "orderitem_set",
+                queryset=OrderItem.objects.select_related("product"),
+            )
+        ).order_by("-id")
+
+        context['orders'] = self.set_get_cache(orders, f"user_{self.request.user.id}_orders", 60 * 5)
         return context
 
 
@@ -104,13 +113,11 @@ class UserCartView(TemplateView):
         return context
 
 
-
 @login_required
 def logout(request):
     messages.success(request, f"{request.user.username}, Вы вышли из аккаунта")
     auth.logout(request)
     return redirect(reverse('main:index'))
-
 
 # def login(request):
 #     if request.method == 'POST':
